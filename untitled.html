@@ -13,7 +13,7 @@
             background-color: #f5f5f5;
         }
         .container {
-            max-width: 900px;
+            max-width: 1000px;
             margin: 0 auto;
             background-color: white;
             padding: 30px;
@@ -54,6 +54,32 @@
             font-size: 16px;
             width: 100%;
         }
+        .paste-section {
+            background-color: #fff3cd;
+            padding: 20px;
+            border-radius: 5px;
+            margin-bottom: 20px;
+            border: 2px dashed #ffc107;
+        }
+        .paste-section h3 {
+            margin-top: 0;
+            color: #856404;
+        }
+        textarea {
+            width: 100%;
+            min-height: 200px;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            font-family: monospace;
+            font-size: 12px;
+            resize: vertical;
+        }
+        .paste-info {
+            font-size: 14px;
+            color: #666;
+            margin-top: 10px;
+        }
         button {
             background-color: #2196F3;
             color: white;
@@ -90,6 +116,40 @@
             background-color: #fff3cd;
             color: #856404;
         }
+        .accordion {
+            background-color: #f8f9fa;
+            border: 1px solid #dee2e6;
+            border-radius: 5px;
+            margin-bottom: 10px;
+        }
+        .accordion-header {
+            padding: 10px 15px;
+            cursor: pointer;
+            user-select: none;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .accordion-header:hover {
+            background-color: #e9ecef;
+        }
+        .accordion-content {
+            padding: 0 15px;
+            max-height: 0;
+            overflow: hidden;
+            transition: max-height 0.3s ease;
+        }
+        .accordion-content.active {
+            max-height: 400px;
+            padding: 15px;
+            overflow-y: auto;
+        }
+        .arrow {
+            transition: transform 0.3s;
+        }
+        .arrow.active {
+            transform: rotate(180deg);
+        }
     </style>
 </head>
 <body>
@@ -101,24 +161,44 @@
             <p><strong>Output Columns:</strong> Category, Name, Scheme Code, Asset (Cr.), Volume, Exp Ratio, <strong>Track Error</strong></p>
             <p><strong>Features:</strong> Excel file with merged category cells, hyperlinked scheme codes, and tracking error data</p>
             <p><strong>Sorting:</strong> Within each category by Asset (Cr.) desc, then Volume desc</p>
-            <p><strong>Tracking Error:</strong> Uses Direct tracking error values from the second file</p>
+            <p><strong>Tracking Error:</strong> Applied only to specific mapped ETFs (250, 150, Next 50 categories). Uses Direct column, or Regular if Direct is empty.</p>
         </div>
 
         <div class="upload-section">
-            <h3>Upload your files</h3>
+            <h3>Step 1: Upload ETF Data CSV File</h3>
             
             <div class="file-input-group">
-                <label for="csvInput">1. ETF Data CSV File (Required)</label>
+                <label for="csvInput">ETF Data CSV File (Required)</label>
                 <input type="file" id="csvInput" accept=".csv">
             </div>
-            
-            <div class="file-input-group">
-                <label for="trackingInput">2. Tracking Error Excel File (Optional)</label>
-                <input type="file" id="trackingInput" accept=".xlsx,.xls,.xlsm">
-            </div>
-            
-            <button id="processBtn" onclick="processFiles()" disabled>Process & Download Excel</button>
         </div>
+
+        <div class="paste-section">
+            <h3>Step 2: Paste Tracking Error Data (Optional)</h3>
+            
+            <div class="accordion">
+                <div class="accordion-header" onclick="toggleAccordion(this)">
+                    <span>📋 Click to paste tracking error data</span>
+                    <span class="arrow">▼</span>
+                </div>
+                <div class="accordion-content">
+                    <textarea id="trackingDataInput" placeholder="Paste your tracking error data here...
+Example:
+Tracking Error for 06-Aug-2025
+Scheme Name	Benchmark	Tracking Error (%)
+			Regular	Direct
+Aditya Birla Sun Life BSE Sensex ETF	BSE Sensex Total Return Index	0.03%	
+HDFC NIFTY Smallcap 250 ETF	NIFTY Smallcap 250 Total Return Index	0.30%	0.30%"></textarea>
+                    <div class="paste-info">
+                        💡 Copy the data from your Excel sheet (including headers) and paste it here. 
+                        <br>The tool will use the "Direct" column values, or "Regular" if Direct is empty.
+                        <br>Only ETFs in the predefined mapping list will get tracking errors.
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <button id="processBtn" onclick="processFiles()" disabled>Process & Download Excel</button>
 
         <div id="status"></div>
     </div>
@@ -126,11 +206,17 @@
     <script>
         // Enable/disable process button based on file selection
         document.getElementById('csvInput').addEventListener('change', checkFiles);
-        document.getElementById('trackingInput').addEventListener('change', checkFiles);
         
         function checkFiles() {
             const csvFile = document.getElementById('csvInput').files.length;
             document.getElementById('processBtn').disabled = !csvFile;
+        }
+
+        function toggleAccordion(header) {
+            const content = header.nextElementSibling;
+            const arrow = header.querySelector('.arrow');
+            content.classList.toggle('active');
+            arrow.classList.toggle('active');
         }
 
         // Scheme code mapping
@@ -164,20 +250,20 @@
             'HDFC Nifty Midcap 150 ETF': 'HDFC NIFTY Midcap 150 ETF',
             'Zerodha Nifty Midcap 150 ETF': 'Zerodha Nifty Midcap 150 ETF',
             'UTI Nifty Midcap 150 ETF': 'UTI Nifty Midcap 150 Exchange Traded Fund',
+            'KOTAKMAMC - MID150': 'Kotak Nifty Midcap 150 ETF',
             'Nippon Nifty Next 50 Junior Bees - ETF': 'Nippon India ETF Nifty Next 50 Junior BeES',
             'SBI Nifty Next 50 ETF': 'SBI Nifty Next 50 ETF',
             'UTI Nifty Next 50 ETF': 'UTI - Nifty Next 50 Exchange Traded Fund.',
             'ICICI Pru Nifty Next 50 ETF': 'ICICI Prudential Nifty Next 50 ETF',
             'Mirae Asset Nifty Next 50 ETF': 'Mirae Asset Nifty Next 50 ETF',
             'Aditya Birla Nifty Next 50 ETF': 'Aditya Birla Sun Life Nifty Next 50 ETF',
-            'HDFC Nifty Next 50 ETF': 'HDFC Nifty Next 50 ETF'
+            'HDFC Nifty Next 50 ETF': 'HDFC Nifty Next 50 ETF',
+            'Motilal Oswal Nifty Next 50 ETF': 'Motilal Oswal Nifty Next 50 ETF'
         };
 
         async function processFiles() {
             const csvInput = document.getElementById('csvInput');
-            const trackingInput = document.getElementById('trackingInput');
             const csvFile = csvInput.files[0];
-            const trackingFile = trackingInput.files[0];
             
             if (!csvFile) {
                 showStatus('Please select the ETF CSV file', 'error');
@@ -202,13 +288,13 @@
 
                 const data = parsed.data;
                 
-                // Read tracking error data if provided
+                // Parse pasted tracking error data
+                const trackingDataText = document.getElementById('trackingDataInput').value;
                 let trackingData = {};
-                if (trackingFile) {
-                    trackingData = await readTrackingFile(trackingFile);
-                    if (Object.keys(trackingData).length === 0) {
-                        showStatus('Warning: Could not read tracking error data, continuing without it', 'warning');
-                    }
+                
+                if (trackingDataText.trim()) {
+                    trackingData = parseTrackingData(trackingDataText);
+                    console.log('Parsed tracking data entries:', Object.keys(trackingData).length);
                 }
                 
                 // Add tracking error to data
@@ -236,6 +322,7 @@
                 
             } catch (error) {
                 showStatus('Error processing files: ' + error.message, 'error');
+                console.error(error);
             }
         }
 
@@ -248,119 +335,85 @@
             });
         }
 
-        function readBinaryFile(file) {
-            return new Promise((resolve, reject) => {
-                const reader = new FileReader();
-                reader.onload = e => resolve(e.target.result);
-                reader.onerror = reject;
-                reader.readAsBinaryString(file);
-            });
-        }
-
-        async function readTrackingFile(file) {
+        function parseTrackingData(text) {
             const trackingData = {};
             
             try {
-                const data = await readBinaryFile(file);
-                const workbook = XLSX.read(data, { type: 'binary' });
-                const firstSheet = workbook.Sheets[workbook.SheetNames[0]];
+                // Split by lines
+                const lines = text.split('\n');
                 
-                // Try different parsing approach - get the raw data
-                console.log('Sheet name:', workbook.SheetNames[0]);
-                
-                // Get the range of the sheet
-                const range = XLSX.utils.decode_range(firstSheet['!ref']);
-                console.log('Sheet range:', firstSheet['!ref'], 'Rows:', range.e.r + 1, 'Cols:', range.e.c + 1);
-                
-                // Manually read cells to understand structure
-                console.log('Checking first few rows:');
-                for (let row = 0; row <= Math.min(4, range.e.r); row++) {
-                    let rowData = [];
-                    for (let col = 0; col <= range.e.c; col++) {
-                        const cellAddress = XLSX.utils.encode_cell({ r: row, c: col });
-                        const cell = firstSheet[cellAddress];
-                        rowData.push(cell ? cell.v : '');
-                    }
-                    console.log(`Row ${row + 1}:`, rowData);
-                }
-                
-                // Look for Scheme Name and Direct columns
+                // Find the header lines
                 let schemeNameCol = -1;
                 let directCol = -1;
+                let regularCol = -1;
+                let dataStartRow = -1;
                 
-                // Check row 1 (index 1) for "Scheme Name"
-                for (let col = 0; col <= range.e.c; col++) {
-                    const cellAddress = XLSX.utils.encode_cell({ r: 1, c: col });
-                    const cell = firstSheet[cellAddress];
-                    if (cell && cell.v) {
-                        const value = String(cell.v).toLowerCase().trim();
-                        if (value.includes('scheme name')) {
-                            schemeNameCol = col;
-                            console.log(`Found "Scheme Name" in column ${col} (${String(cell.v)})`);
+                // Look for "Scheme Name" header
+                for (let i = 0; i < Math.min(5, lines.length); i++) {
+                    const cells = lines[i].split('\t');
+                    for (let j = 0; j < cells.length; j++) {
+                        if (cells[j].toLowerCase().includes('scheme name')) {
+                            schemeNameCol = j;
                             break;
                         }
                     }
+                    if (schemeNameCol > -1) break;
                 }
                 
-                // Check row 2 (index 2) for "Direct"
-                for (let col = 0; col <= range.e.c; col++) {
-                    const cellAddress = XLSX.utils.encode_cell({ r: 2, c: col });
-                    const cell = firstSheet[cellAddress];
-                    if (cell && cell.v) {
-                        const value = String(cell.v).toLowerCase().trim();
-                        if (value === 'direct') {
-                            directCol = col;
-                            console.log(`Found "Direct" in column ${col} (${String(cell.v)})`);
-                            break;
+                // Look for "Direct" and "Regular" headers (usually 1-2 rows after "Scheme Name")
+                for (let i = 0; i < Math.min(5, lines.length); i++) {
+                    const cells = lines[i].split('\t');
+                    for (let j = 0; j < cells.length; j++) {
+                        const cellValue = cells[j].toLowerCase().trim();
+                        if (cellValue === 'direct') {
+                            directCol = j;
+                            dataStartRow = i + 1;
+                        }
+                        if (cellValue === 'regular') {
+                            regularCol = j;
+                            dataStartRow = i + 1;
                         }
                     }
+                    if (directCol > -1 && regularCol > -1) break;
                 }
                 
-                console.log(`Column indices - Scheme Name: ${schemeNameCol}, Direct: ${directCol}`);
+                console.log('Parsing tracking data - Scheme Name Col:', schemeNameCol, 'Direct Col:', directCol, 'Regular Col:', regularCol);
                 
-                // Read data starting from row 3 (index 3)
-                if (schemeNameCol > -1 && directCol > -1) {
-                    let entriesAdded = 0;
-                    for (let row = 3; row <= range.e.r; row++) {
-                        const schemeCell = firstSheet[XLSX.utils.encode_cell({ r: row, c: schemeNameCol })];
-                        const directCell = firstSheet[XLSX.utils.encode_cell({ r: row, c: directCol })];
+                // Parse data rows
+                if (schemeNameCol > -1 && (directCol > -1 || regularCol > -1) && dataStartRow > -1) {
+                    for (let i = dataStartRow; i < lines.length; i++) {
+                        const cells = lines[i].split('\t');
+                        const schemeName = cells[schemeNameCol];
                         
-                        if (schemeCell && schemeCell.v && directCell && directCell.v) {
-                            const schemeName = String(schemeCell.v).trim();
-                            const directValue = String(directCell.v).trim();
+                        // First try Direct column, then Regular if Direct is empty
+                        let trackingValue = '';
+                        if (directCol > -1) {
+                            trackingValue = cells[directCol];
+                        }
+                        if ((!trackingValue || trackingValue.trim() === '') && regularCol > -1) {
+                            trackingValue = cells[regularCol];
+                            console.log(`Using Regular value for "${schemeName}": ${trackingValue}`);
+                        }
+                        
+                        if (schemeName && trackingValue && schemeName.trim() && trackingValue.trim()) {
+                            const cleanName = schemeName.trim();
+                            const cleanValue = trackingValue.trim();
                             
-                            if (schemeName && directValue) {
-                                trackingData[schemeName.toUpperCase()] = directValue;
-                                entriesAdded++;
-                                
-                                // Log first few entries
-                                if (entriesAdded <= 3) {
-                                    console.log(`Added entry ${entriesAdded}: "${schemeName}" = "${directValue}"`);
-                                }
+                            // Store with uppercase key for case-insensitive matching
+                            trackingData[cleanName.toUpperCase()] = cleanValue.includes('%') ? cleanValue : cleanValue + '%';
+                            
+                            // Log first few entries
+                            if (Object.keys(trackingData).length <= 5) {
+                                console.log(`Added tracking data: "${cleanName}" = "${cleanValue}"`);
                             }
                         }
                     }
-                    console.log(`Total entries added: ${entriesAdded}`);
-                } else {
-                    console.error('Could not find required columns. Scheme Name col:', schemeNameCol, 'Direct col:', directCol);
-                    
-                    // Try alternative: use sheet_to_json without header option
-                    console.log('Trying alternative parsing method...');
-                    const jsonData = XLSX.utils.sheet_to_json(firstSheet, { header: 1, defval: '' });
-                    console.log('Alternative parse - Total rows:', jsonData.length);
-                    if (jsonData.length > 0) {
-                        console.log('First 4 rows from alternative parse:', jsonData.slice(0, 4));
-                    }
                 }
                 
-                console.log('Tracking data loaded:', Object.keys(trackingData).length, 'entries');
-                if (Object.keys(trackingData).length > 0) {
-                    console.log('Sample entries:', Object.entries(trackingData).slice(0, 3));
-                }
+                console.log('Total tracking entries parsed:', Object.keys(trackingData).length);
                 
             } catch (error) {
-                console.error('Error reading tracking file:', error);
-                console.error('Error details:', error.stack);
+                console.error('Error parsing tracking data:', error);
             }
             
             return trackingData;
@@ -370,55 +423,42 @@
             console.log('Adding tracking errors. Total tracking data entries:', Object.keys(trackingData).length);
             
             let matchedCount = 0;
+            let unmatchedMappedETFs = [];
             
             data.forEach(etf => {
                 const etfName = etf.Name || '';
                 etf['Track Error'] = '';
                 
-                // First try direct mapping
+                // ONLY process ETFs that have a mapping defined
                 const mappedName = etfNameMapping[etfName];
                 if (mappedName) {
                     const mappedNameUpper = mappedName.toUpperCase();
                     if (trackingData[mappedNameUpper]) {
                         etf['Track Error'] = trackingData[mappedNameUpper];
                         matchedCount++;
-                        console.log(`Matched via mapping: "${etfName}" -> "${mappedName}" = ${trackingData[mappedNameUpper]}`);
-                    }
-                }
-                // Then try exact match (case-insensitive)
-                else if (trackingData[etfName.toUpperCase()]) {
-                    etf['Track Error'] = trackingData[etfName.toUpperCase()];
-                    matchedCount++;
-                    console.log(`Matched exact: "${etfName}" = ${trackingData[etfName.toUpperCase()]}`);
-                }
-                // Try fuzzy matching for other ETFs
-                else {
-                    // Try to find partial matches
-                    const etfNameUpper = etfName.toUpperCase();
-                    for (const [trackerName, trackerValue] of Object.entries(trackingData)) {
-                        // Check if names share significant keywords
-                        const etfKeywords = etfNameUpper.split(/[\s-]+/).filter(w => w.length > 2);
-                        const trackerKeywords = trackerName.split(/[\s-]+/).filter(w => w.length > 2);
+                        console.log(`✓ Matched via mapping: "${etfName}" -> "${mappedName}" = ${trackingData[mappedNameUpper]}`);
+                    } else {
+                        // This ETF has a mapping but no tracking data was found
+                        unmatchedMappedETFs.push(etfName);
+                        console.log(`✗ Mapping exists but no tracking data found: "${etfName}" -> "${mappedName}"`);
                         
-                        let matchCount = 0;
-                        etfKeywords.forEach(keyword => {
-                            if (trackerKeywords.some(tk => tk.includes(keyword) || keyword.includes(tk))) {
-                                matchCount++;
-                            }
-                        });
-                        
-                        // If we have at least 3 matching keywords, consider it a match
-                        if (matchCount >= 3) {
-                            etf['Track Error'] = trackerValue;
-                            matchedCount++;
-                            console.log(`Matched fuzzy: "${etfName}" ~ "${trackerName}" = ${trackerValue}`);
-                            break;
+                        // Show similar names in tracking data for debugging
+                        const keywords = mappedNameUpper.split(/[\s-]+/).filter(w => w.length > 2);
+                        const similar = Object.keys(trackingData).filter(name => 
+                            keywords.some(keyword => name.includes(keyword))
+                        );
+                        if (similar.length > 0 && similar.length < 5) {
+                            console.log('  Similar names in tracking data:', similar.slice(0, 3));
                         }
                     }
                 }
+                // Skip ETFs without mapping - they don't get tracking errors
             });
             
-            console.log(`Total matches found: ${matchedCount}`);
+            console.log(`Total tracking errors added: ${matchedCount} out of ${Object.keys(etfNameMapping).length} mapped ETFs`);
+            if (unmatchedMappedETFs.length > 0) {
+                console.log('Mapped ETFs without tracking data found:', unmatchedMappedETFs);
+            }
         }
 
         function categorizeETFs(data) {
