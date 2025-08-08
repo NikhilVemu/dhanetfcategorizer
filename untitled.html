@@ -114,7 +114,7 @@
             
             <div class="file-input-group">
                 <label for="trackingInput">2. Tracking Error Excel File (Optional)</label>
-                <input type="file" id="trackingInput" accept=".xlsx,.xls">
+                <input type="file" id="trackingInput" accept=".xlsx,.xls,.xlsm">
             </div>
             
             <button id="processBtn" onclick="processFiles()" disabled>Process & Download Excel</button>
@@ -266,37 +266,55 @@
                 const firstSheet = workbook.Sheets[workbook.SheetNames[0]];
                 const jsonData = XLSX.utils.sheet_to_json(firstSheet, { header: 1 });
                 
-                // Find column indices
+                // The structure is:
+                // Row 0: Title "Tracking Error for..."
+                // Row 1: Main headers including "Scheme Name", "Benchmark", "Tracking Error (%)"
+                // Row 2: Subheaders with "Regular" and "Direct"
+                // Row 3+: Data
+                
                 let schemeNameCol = -1;
                 let directCol = -1;
                 
-                // Find header row (looking for "Scheme Name" and "Direct")
-                for (let i = 0; i < Math.min(jsonData.length, 5); i++) {
-                    const row = jsonData[i] || [];
-                    for (let j = 0; j < row.length; j++) {
-                        const cellValue = String(row[j] || '').toLowerCase();
+                // Find "Scheme Name" in row 1 (index 1)
+                if (jsonData.length > 1) {
+                    const headerRow = jsonData[1] || [];
+                    for (let j = 0; j < headerRow.length; j++) {
+                        const cellValue = String(headerRow[j] || '').toLowerCase();
                         if (cellValue.includes('scheme name')) {
                             schemeNameCol = j;
+                            break;
                         }
-                        if (cellValue === 'direct') {
-                            directCol = j;
-                        }
-                    }
-                    if (schemeNameCol > -1 && directCol > -1) {
-                        // Start processing from next row
-                        for (let k = i + 1; k < jsonData.length; k++) {
-                            const dataRow = jsonData[k] || [];
-                            const schemeName = dataRow[schemeNameCol];
-                            const directValue = dataRow[directCol];
-                            
-                            if (schemeName && directValue) {
-                                // Store with uppercase for case-insensitive matching
-                                trackingData[String(schemeName).toUpperCase()] = directValue;
-                            }
-                        }
-                        break;
                     }
                 }
+                
+                // Find "Direct" in row 2 (index 2)
+                if (jsonData.length > 2) {
+                    const subheaderRow = jsonData[2] || [];
+                    for (let j = 0; j < subheaderRow.length; j++) {
+                        const cellValue = String(subheaderRow[j] || '').toLowerCase();
+                        if (cellValue === 'direct') {
+                            directCol = j;
+                            break;
+                        }
+                    }
+                }
+                
+                // Process data starting from row 3 (index 3)
+                if (schemeNameCol > -1 && directCol > -1) {
+                    for (let i = 3; i < jsonData.length; i++) {
+                        const dataRow = jsonData[i] || [];
+                        const schemeName = dataRow[schemeNameCol];
+                        const directValue = dataRow[directCol];
+                        
+                        if (schemeName && directValue) {
+                            // Store with uppercase for case-insensitive matching
+                            trackingData[String(schemeName).toUpperCase()] = String(directValue);
+                        }
+                    }
+                }
+                
+                console.log('Tracking data loaded:', Object.keys(trackingData).length, 'entries');
+                console.log('Sample entries:', Object.entries(trackingData).slice(0, 3));
                 
             } catch (error) {
                 console.error('Error reading tracking file:', error);
@@ -306,18 +324,29 @@
         }
 
         function addTrackingError(data, trackingData) {
+            console.log('Adding tracking errors. Total tracking data entries:', Object.keys(trackingData).length);
+            
+            let matchedCount = 0;
+            
             data.forEach(etf => {
                 const etfName = etf.Name || '';
                 etf['Track Error'] = '';
                 
                 // First try direct mapping
                 const mappedName = etfNameMapping[etfName];
-                if (mappedName && trackingData[mappedName.toUpperCase()]) {
-                    etf['Track Error'] = trackingData[mappedName.toUpperCase()];
+                if (mappedName) {
+                    const mappedNameUpper = mappedName.toUpperCase();
+                    if (trackingData[mappedNameUpper]) {
+                        etf['Track Error'] = trackingData[mappedNameUpper];
+                        matchedCount++;
+                        console.log(`Matched via mapping: "${etfName}" -> "${mappedName}" = ${trackingData[mappedNameUpper]}`);
+                    }
                 }
                 // Then try exact match (case-insensitive)
                 else if (trackingData[etfName.toUpperCase()]) {
                     etf['Track Error'] = trackingData[etfName.toUpperCase()];
+                    matchedCount++;
+                    console.log(`Matched exact: "${etfName}" = ${trackingData[etfName.toUpperCase()]}`);
                 }
                 // Try fuzzy matching for other ETFs
                 else {
@@ -338,11 +367,15 @@
                         // If we have at least 3 matching keywords, consider it a match
                         if (matchCount >= 3) {
                             etf['Track Error'] = trackerValue;
+                            matchedCount++;
+                            console.log(`Matched fuzzy: "${etfName}" ~ "${trackerName}" = ${trackerValue}`);
                             break;
                         }
                     }
                 }
             });
+            
+            console.log(`Total matches found: ${matchedCount}`);
         }
 
         function categorizeETFs(data) {
