@@ -264,60 +264,103 @@
                 const data = await readBinaryFile(file);
                 const workbook = XLSX.read(data, { type: 'binary' });
                 const firstSheet = workbook.Sheets[workbook.SheetNames[0]];
-                const jsonData = XLSX.utils.sheet_to_json(firstSheet, { header: 1 });
                 
-                // The structure is:
-                // Row 0: Title "Tracking Error for..."
-                // Row 1: Main headers including "Scheme Name", "Benchmark", "Tracking Error (%)"
-                // Row 2: Subheaders with "Regular" and "Direct"
-                // Row 3+: Data
+                // Try different parsing approach - get the raw data
+                console.log('Sheet name:', workbook.SheetNames[0]);
                 
+                // Get the range of the sheet
+                const range = XLSX.utils.decode_range(firstSheet['!ref']);
+                console.log('Sheet range:', firstSheet['!ref'], 'Rows:', range.e.r + 1, 'Cols:', range.e.c + 1);
+                
+                // Manually read cells to understand structure
+                console.log('Checking first few rows:');
+                for (let row = 0; row <= Math.min(4, range.e.r); row++) {
+                    let rowData = [];
+                    for (let col = 0; col <= range.e.c; col++) {
+                        const cellAddress = XLSX.utils.encode_cell({ r: row, c: col });
+                        const cell = firstSheet[cellAddress];
+                        rowData.push(cell ? cell.v : '');
+                    }
+                    console.log(`Row ${row + 1}:`, rowData);
+                }
+                
+                // Look for Scheme Name and Direct columns
                 let schemeNameCol = -1;
                 let directCol = -1;
                 
-                // Find "Scheme Name" in row 1 (index 1)
-                if (jsonData.length > 1) {
-                    const headerRow = jsonData[1] || [];
-                    for (let j = 0; j < headerRow.length; j++) {
-                        const cellValue = String(headerRow[j] || '').toLowerCase();
-                        if (cellValue.includes('scheme name')) {
-                            schemeNameCol = j;
+                // Check row 1 (index 1) for "Scheme Name"
+                for (let col = 0; col <= range.e.c; col++) {
+                    const cellAddress = XLSX.utils.encode_cell({ r: 1, c: col });
+                    const cell = firstSheet[cellAddress];
+                    if (cell && cell.v) {
+                        const value = String(cell.v).toLowerCase().trim();
+                        if (value.includes('scheme name')) {
+                            schemeNameCol = col;
+                            console.log(`Found "Scheme Name" in column ${col} (${String(cell.v)})`);
                             break;
                         }
                     }
                 }
                 
-                // Find "Direct" in row 2 (index 2)
-                if (jsonData.length > 2) {
-                    const subheaderRow = jsonData[2] || [];
-                    for (let j = 0; j < subheaderRow.length; j++) {
-                        const cellValue = String(subheaderRow[j] || '').toLowerCase();
-                        if (cellValue === 'direct') {
-                            directCol = j;
+                // Check row 2 (index 2) for "Direct"
+                for (let col = 0; col <= range.e.c; col++) {
+                    const cellAddress = XLSX.utils.encode_cell({ r: 2, c: col });
+                    const cell = firstSheet[cellAddress];
+                    if (cell && cell.v) {
+                        const value = String(cell.v).toLowerCase().trim();
+                        if (value === 'direct') {
+                            directCol = col;
+                            console.log(`Found "Direct" in column ${col} (${String(cell.v)})`);
                             break;
                         }
                     }
                 }
                 
-                // Process data starting from row 3 (index 3)
+                console.log(`Column indices - Scheme Name: ${schemeNameCol}, Direct: ${directCol}`);
+                
+                // Read data starting from row 3 (index 3)
                 if (schemeNameCol > -1 && directCol > -1) {
-                    for (let i = 3; i < jsonData.length; i++) {
-                        const dataRow = jsonData[i] || [];
-                        const schemeName = dataRow[schemeNameCol];
-                        const directValue = dataRow[directCol];
+                    let entriesAdded = 0;
+                    for (let row = 3; row <= range.e.r; row++) {
+                        const schemeCell = firstSheet[XLSX.utils.encode_cell({ r: row, c: schemeNameCol })];
+                        const directCell = firstSheet[XLSX.utils.encode_cell({ r: row, c: directCol })];
                         
-                        if (schemeName && directValue) {
-                            // Store with uppercase for case-insensitive matching
-                            trackingData[String(schemeName).toUpperCase()] = String(directValue);
+                        if (schemeCell && schemeCell.v && directCell && directCell.v) {
+                            const schemeName = String(schemeCell.v).trim();
+                            const directValue = String(directCell.v).trim();
+                            
+                            if (schemeName && directValue) {
+                                trackingData[schemeName.toUpperCase()] = directValue;
+                                entriesAdded++;
+                                
+                                // Log first few entries
+                                if (entriesAdded <= 3) {
+                                    console.log(`Added entry ${entriesAdded}: "${schemeName}" = "${directValue}"`);
+                                }
+                            }
                         }
+                    }
+                    console.log(`Total entries added: ${entriesAdded}`);
+                } else {
+                    console.error('Could not find required columns. Scheme Name col:', schemeNameCol, 'Direct col:', directCol);
+                    
+                    // Try alternative: use sheet_to_json without header option
+                    console.log('Trying alternative parsing method...');
+                    const jsonData = XLSX.utils.sheet_to_json(firstSheet, { header: 1, defval: '' });
+                    console.log('Alternative parse - Total rows:', jsonData.length);
+                    if (jsonData.length > 0) {
+                        console.log('First 4 rows from alternative parse:', jsonData.slice(0, 4));
                     }
                 }
                 
                 console.log('Tracking data loaded:', Object.keys(trackingData).length, 'entries');
-                console.log('Sample entries:', Object.entries(trackingData).slice(0, 3));
+                if (Object.keys(trackingData).length > 0) {
+                    console.log('Sample entries:', Object.entries(trackingData).slice(0, 3));
+                }
                 
             } catch (error) {
                 console.error('Error reading tracking file:', error);
+                console.error('Error details:', error.stack);
             }
             
             return trackingData;
