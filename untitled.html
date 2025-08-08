@@ -158,10 +158,10 @@
 
     <div class="info">
         <p><strong>Categories (in order):</strong> 250, 150, Next 50, Other</p>
-        <p><strong>Output Columns:</strong> Category, Name, Scheme Code, Asset (Cr.), Volume, Exp Ratio, <strong>Track Error</strong></p>
-        <p><strong>Features:</strong> Excel file with merged category cells, hyperlinked scheme codes, and tracking error data</p>
+        <p><strong>Output Columns:</strong> Category, Name, Asset (Cr.), Volume, Exp Ratio, <strong>Track Error</strong></p>
+        <p><strong>Features:</strong> Excel file with merged category cells and tracking error data</p>
         <p><strong>Sorting:</strong> Within each category by Asset (Cr.) desc, then Volume desc</p>
-        <p><strong>Tracking Error:</strong> Applied only to specific mapped ETFs (250, 150, Next 50 categories). Uses Direct column, or Regular if Direct is empty.</p>
+        <p><strong>Tracking Error:</strong> Applied only to specific mapped ETFs (250, 150, Next 50 categories). Uses Direct column, or Regular if Direct is empty or 0%.</p>
     </div>
 
     <div class="upload-section">
@@ -187,8 +187,9 @@ Example:
 Tracking Error for 06-Aug-2025
 Scheme Name	Benchmark	Tracking Error (%)
 			Regular	Direct
-Aditya Birla Sun Life BSE Sensex ETF	BSE Sensex Total Return Index	0.03%	
-HDFC NIFTY Smallcap 250 ETF	NIFTY Smallcap 250 Total Return Index	0.30%	0.30%"></textarea>
+Aditya Birla Sun Life BSE Sensex ETF	BSE Sensex Total Return Index	0.03%
+HDFC NIFTY Smallcap 250 ETF	NIFTY Smallcap 250 Total Return Index	0.30%	0.30%
+MOTILAL OSWAL NIFTY SMALLCAP 250 ETF	NIFTY Smallcap 250 Total Return Index	0.22%	"></textarea>
                 <div class="paste-info">
                     💡 Copy the data from your Excel sheet (including headers) and paste it here.
                     <br>The tool will use the "Direct" column values, or "Regular" if Direct is empty.
@@ -218,27 +219,6 @@ HDFC NIFTY Smallcap 250 ETF	NIFTY Smallcap 250 Total Return Index	0.30%	0.30%"><
         content.classList.toggle('active');
         arrow.classList.toggle('active');
     }
-
-    // Scheme code mapping
-    const schemeCodeMapping = {
-        'HDFC Nifty Small Cap 250 ETF': '151375',
-        'Motilal Oswal Nifty Smallcap 250 ETF': '152546',
-        'Nippon Nifty MC 150 ETF (MID150BEES)': '146271',
-        'Mirae Asset Nifty Midcap 150 ETF': '149918',
-        'ICICI Pru Nifty Midcap 150 ETF': '147921',
-        'HDFC Nifty Midcap 150 ETF': '151374',
-        'Zerodha Nifty Midcap 150 ETF': '152668',
-        'UTI Nifty Midcap 150 ETF': '152050',
-        'KOTAKMAMC - MID150': '153398',
-        'Nippon Nifty Next 50 Junior Bees - ETF': '140085',
-        'SBI Nifty Next 50 ETF': '134013',
-        'UTI Nifty Next 50 ETF': '141665',
-        'ICICI Pru Nifty Next 50 ETF': '144587',
-        'Mirae Asset Nifty Next 50 ETF': '147906',
-        'Aditya Birla Nifty Next 50 ETF': '145881',
-        'HDFC Nifty Next 50 ETF': '150477',
-        'Motilal Oswal Nifty Next 50 ETF': '153535'
-    };
 
     // ETF name mapping for tracking error matching
     const etfNameMapping = {
@@ -300,17 +280,13 @@ HDFC NIFTY Smallcap 250 ETF	NIFTY Smallcap 250 Total Return Index	0.30%	0.30%"><
             // Add tracking error to data
             addTrackingError(data, trackingData);
 
-            // Categorize ETFs and add scheme codes
+            // Categorize ETFs
             const categorizedData = categorizeETFs(data);
 
-            // Count scheme codes and tracking errors added
-            let schemeCodesAdded = 0;
+            // Count tracking errors added
             let trackingErrorsAdded = 0;
             Object.values(categorizedData).forEach(category => {
                 category.forEach(etf => {
-                    if (etf['Scheme Code'] && schemeCodeMapping[etf.Name]) {
-                        schemeCodesAdded++;
-                    }
                     if (etf['Track Error'] && etf['Track Error'] !== '') {
                         trackingErrorsAdded++;
                     }
@@ -318,7 +294,7 @@ HDFC NIFTY Smallcap 250 ETF	NIFTY Smallcap 250 Total Return Index	0.30%	0.30%"><
             });
 
             // Download Excel
-            downloadExcel(data.length, categorizedData, schemeCodesAdded, trackingErrorsAdded);
+            downloadExcel(data.length, categorizedData, trackingErrorsAdded);
 
         } catch (error) {
             showStatus('Error processing files: ' + error.message, 'error');
@@ -385,14 +361,25 @@ HDFC NIFTY Smallcap 250 ETF	NIFTY Smallcap 250 Total Return Index	0.30%	0.30%"><
                     const cells = lines[i].split('\t');
                     const schemeName = cells[schemeNameCol];
 
-                    // First try Direct column, then Regular if Direct is empty
+                    // First try Direct column
                     let trackingValue = '';
+                    let usingRegular = false;
+
                     if (directCol > -1) {
-                        trackingValue = cells[directCol];
+                        const directValue = cells[directCol];
+                        // Check if Direct is empty or 0.00% or 0%
+                        if (directValue && directValue.trim() !== '' &&
+                            directValue.trim() !== '0.00%' &&
+                            directValue.trim() !== '0%' &&
+                            directValue.trim() !== '0.0%') {
+                            trackingValue = directValue;
+                        }
                     }
+
+                    // If Direct is empty or 0%, use Regular
                     if ((!trackingValue || trackingValue.trim() === '') && regularCol > -1) {
                         trackingValue = cells[regularCol];
-                        console.log(`Using Regular value for "${schemeName}": ${trackingValue}`);
+                        usingRegular = true;
                     }
 
                     if (schemeName && trackingValue && schemeName.trim() && trackingValue.trim()) {
@@ -402,9 +389,10 @@ HDFC NIFTY Smallcap 250 ETF	NIFTY Smallcap 250 Total Return Index	0.30%	0.30%"><
                         // Store with uppercase key for case-insensitive matching
                         trackingData[cleanName.toUpperCase()] = cleanValue.includes('%') ? cleanValue : cleanValue + '%';
 
-                        // Log first few entries
-                        if (Object.keys(trackingData).length <= 5) {
-                            console.log(`Added tracking data: "${cleanName}" = "${cleanValue}"`);
+                        // Log first few entries or when using Regular
+                        if (Object.keys(trackingData).length <= 5 || usingRegular) {
+                            const source = usingRegular ? 'Regular' : 'Direct';
+                            console.log(`Added tracking data (${source}): "${cleanName}" = "${cleanValue}"`);
                         }
                     }
                 }
@@ -474,13 +462,6 @@ HDFC NIFTY Smallcap 250 ETF	NIFTY Smallcap 250 Total Return Index	0.30%	0.30%"><
             const nameLower = name.toLowerCase();
             let categorized = false;
 
-            // Fill in scheme code if we have it
-            if (schemeCodeMapping[name]) {
-                etf['Scheme Code'] = schemeCodeMapping[name];
-            } else if (!etf['Scheme Code']) {
-                etf['Scheme Code'] = '';
-            }
-
             // Check 250 (exclude MQ)
             if (name.includes('250') && !name.includes('MQ')) {
                 categories['250'].push(etf);
@@ -505,7 +486,7 @@ HDFC NIFTY Smallcap 250 ETF	NIFTY Smallcap 250 Total Return Index	0.30%	0.30%"><
         return categories;
     }
 
-    function downloadExcel(totalCount, categorizedData, schemeCodesAdded, trackingErrorsAdded) {
+    function downloadExcel(totalCount, categorizedData, trackingErrorsAdded) {
         // Create workbook
         const wb = XLSX.utils.book_new();
 
@@ -513,8 +494,8 @@ HDFC NIFTY Smallcap 250 ETF	NIFTY Smallcap 250 Total Return Index	0.30%	0.30%"><
         const wsData = [];
         const merges = [];
 
-        // Define desired columns (now includes Track Error)
-        const desiredColumns = ['Name', 'Scheme Code', 'Asset (Cr.)', 'Volume', 'Exp Ratio', 'Track Error'];
+        // Define desired columns (without Scheme Code)
+        const desiredColumns = ['Name', 'Asset (Cr.)', 'Volume', 'Exp Ratio', 'Track Error'];
 
         // Track category positions for merging
         let currentRow = 1; // Excel rows are 1-indexed, and we start after header
@@ -566,28 +547,6 @@ HDFC NIFTY Smallcap 250 ETF	NIFTY Smallcap 250 Total Return Index	0.30%	0.30%"><
         // Create worksheet
         const ws = XLSX.utils.aoa_to_sheet(wsData);
 
-        // Add hyperlinks for scheme codes
-        const schemeCodeCol = headers.indexOf('Scheme Code');
-        if (schemeCodeCol > -1) {
-            for (let row = 1; row < wsData.length; row++) { // Start from 1 to skip header
-                const schemeCode = wsData[row][schemeCodeCol];
-                if (schemeCode && schemeCode !== '') {
-                    const cellAddress = XLSX.utils.encode_cell({ r: row, c: schemeCodeCol });
-                    ws[cellAddress].l = {
-                        Target: `https://api.mfapi.in/mf/${schemeCode}`,
-                        Tooltip: `View MF API data for ${schemeCode}`
-                    };
-                    // Style hyperlinks as blue and underlined
-                    ws[cellAddress].s = {
-                        font: {
-                            color: { rgb: "0000FF" },
-                            underline: true
-                        }
-                    };
-                }
-            }
-        }
-
         // Apply merges
         ws['!merges'] = merges;
 
@@ -595,7 +554,6 @@ HDFC NIFTY Smallcap 250 ETF	NIFTY Smallcap 250 Total Return Index	0.30%	0.30%"><
         const colWidths = [
             { wch: 12 }, // Category
             { wch: 40 }, // Name
-            { wch: 15 }, // Scheme Code
             { wch: 15 }, // Asset (Cr.)
             { wch: 15 }, // Volume
             { wch: 12 }, // Exp Ratio
@@ -614,7 +572,7 @@ HDFC NIFTY Smallcap 250 ETF	NIFTY Smallcap 250 Total Return Index	0.30%	0.30%"><
             `${cat}: ${categorizedData[cat].length}`
         ).join(', ');
 
-        let statusMessage = `Excel downloaded! Processed ${totalCount} ETFs, added ${schemeCodesAdded} scheme codes`;
+        let statusMessage = `Excel downloaded! Processed ${totalCount} ETFs`;
         if (trackingErrorsAdded > 0) {
             statusMessage += `, added ${trackingErrorsAdded} tracking errors`;
         }
