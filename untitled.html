@@ -153,35 +153,35 @@
     </style>
 </head>
 <body>
-    <div class="container">
-        <h1>ETF Categorizer with Tracking Error</h1>
-        
-        <div class="info">
-            <p><strong>Categories (in order):</strong> 250, 150, Next 50, Other</p>
-            <p><strong>Output Columns:</strong> Category, Name, Scheme Code, Asset (Cr.), Volume, Exp Ratio, <strong>Track Error</strong></p>
-            <p><strong>Features:</strong> Excel file with merged category cells, hyperlinked scheme codes, and tracking error data</p>
-            <p><strong>Sorting:</strong> Within each category by Asset (Cr.) desc, then Volume desc</p>
-            <p><strong>Tracking Error:</strong> Applied only to specific mapped ETFs (250, 150, Next 50 categories). Uses Direct column, or Regular if Direct is empty.</p>
-        </div>
+<div class="container">
+    <h1>ETF Categorizer with Tracking Error</h1>
 
-        <div class="upload-section">
-            <h3>Step 1: Upload ETF Data CSV File</h3>
-            
-            <div class="file-input-group">
-                <label for="csvInput">ETF Data CSV File (Required)</label>
-                <input type="file" id="csvInput" accept=".csv">
+    <div class="info">
+        <p><strong>Categories (in order):</strong> 250, 150, Next 50, Other</p>
+        <p><strong>Output Columns:</strong> Category, Name, Scheme Code, Asset (Cr.), Volume, Exp Ratio, <strong>Track Error</strong></p>
+        <p><strong>Features:</strong> Excel file with merged category cells, hyperlinked scheme codes, and tracking error data</p>
+        <p><strong>Sorting:</strong> Within each category by Asset (Cr.) desc, then Volume desc</p>
+        <p><strong>Tracking Error:</strong> Applied only to specific mapped ETFs (250, 150, Next 50 categories). Uses Direct column, or Regular if Direct is empty.</p>
+    </div>
+
+    <div class="upload-section">
+        <h3>Step 1: Upload ETF Data CSV File</h3>
+
+        <div class="file-input-group">
+            <label for="csvInput">ETF Data CSV File (Required)</label>
+            <input type="file" id="csvInput" accept=".csv">
+        </div>
+    </div>
+
+    <div class="paste-section">
+        <h3>Step 2: Paste Tracking Error Data (Optional)</h3>
+
+        <div class="accordion">
+            <div class="accordion-header" onclick="toggleAccordion(this)">
+                <span>📋 Click to paste tracking error data</span>
+                <span class="arrow">▼</span>
             </div>
-        </div>
-
-        <div class="paste-section">
-            <h3>Step 2: Paste Tracking Error Data (Optional)</h3>
-            
-            <div class="accordion">
-                <div class="accordion-header" onclick="toggleAccordion(this)">
-                    <span>📋 Click to paste tracking error data</span>
-                    <span class="arrow">▼</span>
-                </div>
-                <div class="accordion-content">
+            <div class="accordion-content">
                     <textarea id="trackingDataInput" placeholder="Paste your tracking error data here...
 Example:
 Tracking Error for 06-Aug-2025
@@ -189,445 +189,445 @@ Scheme Name	Benchmark	Tracking Error (%)
 			Regular	Direct
 Aditya Birla Sun Life BSE Sensex ETF	BSE Sensex Total Return Index	0.03%	
 HDFC NIFTY Smallcap 250 ETF	NIFTY Smallcap 250 Total Return Index	0.30%	0.30%"></textarea>
-                    <div class="paste-info">
-                        💡 Copy the data from your Excel sheet (including headers) and paste it here. 
-                        <br>The tool will use the "Direct" column values, or "Regular" if Direct is empty.
-                        <br>Only ETFs in the predefined mapping list will get tracking errors.
-                    </div>
+                <div class="paste-info">
+                    💡 Copy the data from your Excel sheet (including headers) and paste it here.
+                    <br>The tool will use the "Direct" column values, or "Regular" if Direct is empty.
+                    <br>Only ETFs in the predefined mapping list will get tracking errors.
                 </div>
             </div>
         </div>
-
-        <button id="processBtn" onclick="processFiles()" disabled>Process & Download Excel</button>
-
-        <div id="status"></div>
     </div>
 
-    <script>
-        // Enable/disable process button based on file selection
-        document.getElementById('csvInput').addEventListener('change', checkFiles);
-        
-        function checkFiles() {
-            const csvFile = document.getElementById('csvInput').files.length;
-            document.getElementById('processBtn').disabled = !csvFile;
+    <button id="processBtn" onclick="processFiles()" disabled>Process & Download Excel</button>
+
+    <div id="status"></div>
+</div>
+
+<script>
+    // Enable/disable process button based on file selection
+    document.getElementById('csvInput').addEventListener('change', checkFiles);
+
+    function checkFiles() {
+        const csvFile = document.getElementById('csvInput').files.length;
+        document.getElementById('processBtn').disabled = !csvFile;
+    }
+
+    function toggleAccordion(header) {
+        const content = header.nextElementSibling;
+        const arrow = header.querySelector('.arrow');
+        content.classList.toggle('active');
+        arrow.classList.toggle('active');
+    }
+
+    // Scheme code mapping
+    const schemeCodeMapping = {
+        'HDFC Nifty Small Cap 250 ETF': '151375',
+        'Motilal Oswal Nifty Smallcap 250 ETF': '152546',
+        'Nippon Nifty MC 150 ETF (MID150BEES)': '146271',
+        'Mirae Asset Nifty Midcap 150 ETF': '149918',
+        'ICICI Pru Nifty Midcap 150 ETF': '147921',
+        'HDFC Nifty Midcap 150 ETF': '151374',
+        'Zerodha Nifty Midcap 150 ETF': '152668',
+        'UTI Nifty Midcap 150 ETF': '152050',
+        'KOTAKMAMC - MID150': '153398',
+        'Nippon Nifty Next 50 Junior Bees - ETF': '140085',
+        'SBI Nifty Next 50 ETF': '134013',
+        'UTI Nifty Next 50 ETF': '141665',
+        'ICICI Pru Nifty Next 50 ETF': '144587',
+        'Mirae Asset Nifty Next 50 ETF': '147906',
+        'Aditya Birla Nifty Next 50 ETF': '145881',
+        'HDFC Nifty Next 50 ETF': '150477',
+        'Motilal Oswal Nifty Next 50 ETF': '153535'
+    };
+
+    // ETF name mapping for tracking error matching
+    const etfNameMapping = {
+        'HDFC Nifty Small Cap 250 ETF': 'HDFC NIFTY Smallcap 250 ETF',
+        'Motilal Oswal Nifty Smallcap 250 ETF': 'MOTILAL OSWAL NIFTY SMALLCAP 250 ETF',
+        'Nippon Nifty MC 150 ETF (MID150BEES)': 'Nippon India ETF Nifty Midcap 150',
+        'Mirae Asset Nifty Midcap 150 ETF': 'Mirae Asset Nifty Midcap 150 ETF',
+        'ICICI Pru Nifty Midcap 150 ETF': 'ICICI Prudential Nifty Midcap 150 ETF',
+        'HDFC Nifty Midcap 150 ETF': 'HDFC NIFTY Midcap 150 ETF',
+        'Zerodha Nifty Midcap 150 ETF': 'Zerodha Nifty Midcap 150 ETF',
+        'UTI Nifty Midcap 150 ETF': 'UTI Nifty Midcap 150 Exchange Traded Fund',
+        'KOTAKMAMC - MID150': 'Kotak Nifty Midcap 150 ETF',
+        'Nippon Nifty Next 50 Junior Bees - ETF': 'Nippon India ETF Nifty Next 50 Junior BeES',
+        'SBI Nifty Next 50 ETF': 'SBI Nifty Next 50 ETF',
+        'UTI Nifty Next 50 ETF': 'UTI - Nifty Next 50 Exchange Traded Fund.',
+        'ICICI Pru Nifty Next 50 ETF': 'ICICI Prudential Nifty Next 50 ETF',
+        'Mirae Asset Nifty Next 50 ETF': 'Mirae Asset Nifty Next 50 ETF',
+        'Aditya Birla Nifty Next 50 ETF': 'Aditya Birla Sun Life Nifty Next 50 ETF',
+        'HDFC Nifty Next 50 ETF': 'HDFC Nifty Next 50 ETF',
+        'Motilal Oswal Nifty Next 50 ETF': 'Motilal Oswal Nifty Next 50 ETF'
+    };
+
+    async function processFiles() {
+        const csvInput = document.getElementById('csvInput');
+        const csvFile = csvInput.files[0];
+
+        if (!csvFile) {
+            showStatus('Please select the ETF CSV file', 'error');
+            return;
         }
 
-        function toggleAccordion(header) {
-            const content = header.nextElementSibling;
-            const arrow = header.querySelector('.arrow');
-            content.classList.toggle('active');
-            arrow.classList.toggle('active');
-        }
+        try {
+            // Read CSV file
+            const csvContent = await readTextFile(csvFile);
 
-        // Scheme code mapping
-        const schemeCodeMapping = {
-            'HDFC Nifty Small Cap 250 ETF': '151375',
-            'Motilal Oswal Nifty Smallcap 250 ETF': '152546',
-            'Nippon Nifty MC 150 ETF (MID150BEES)': '146271',
-            'Mirae Asset Nifty Midcap 150 ETF': '149918',
-            'ICICI Pru Nifty Midcap 150 ETF': '147921',
-            'HDFC Nifty Midcap 150 ETF': '151374',
-            'Zerodha Nifty Midcap 150 ETF': '152668',
-            'UTI Nifty Midcap 150 ETF': '152050',
-            'KOTAKMAMC - MID150': '153398',
-            'Nippon Nifty Next 50 Junior Bees - ETF': '140085',
-            'SBI Nifty Next 50 ETF': '134013',
-            'UTI Nifty Next 50 ETF': '141665',
-            'ICICI Pru Nifty Next 50 ETF': '144587',
-            'Mirae Asset Nifty Next 50 ETF': '147906',
-            'Aditya Birla Nifty Next 50 ETF': '145881',
-            'HDFC Nifty Next 50 ETF': '150477',
-            'Motilal Oswal Nifty Next 50 ETF': '153535'
-        };
+            // Parse CSV
+            const parsed = Papa.parse(csvContent, {
+                header: true,
+                dynamicTyping: false,
+                skipEmptyLines: true
+            });
 
-        // ETF name mapping for tracking error matching
-        const etfNameMapping = {
-            'HDFC Nifty Small Cap 250 ETF': 'HDFC NIFTY Smallcap 250 ETF',
-            'Motilal Oswal Nifty Smallcap 250 ETF': 'MOTILAL OSWAL NIFTY SMALLCAP 250 ETF',
-            'Nippon Nifty MC 150 ETF (MID150BEES)': 'Nippon India ETF Nifty Midcap 150',
-            'Mirae Asset Nifty Midcap 150 ETF': 'Mirae Asset Nifty Midcap 150 ETF',
-            'ICICI Pru Nifty Midcap 150 ETF': 'ICICI Prudential Nifty Midcap 150 ETF',
-            'HDFC Nifty Midcap 150 ETF': 'HDFC NIFTY Midcap 150 ETF',
-            'Zerodha Nifty Midcap 150 ETF': 'Zerodha Nifty Midcap 150 ETF',
-            'UTI Nifty Midcap 150 ETF': 'UTI Nifty Midcap 150 Exchange Traded Fund',
-            'KOTAKMAMC - MID150': 'Kotak Nifty Midcap 150 ETF',
-            'Nippon Nifty Next 50 Junior Bees - ETF': 'Nippon India ETF Nifty Next 50 Junior BeES',
-            'SBI Nifty Next 50 ETF': 'SBI Nifty Next 50 ETF',
-            'UTI Nifty Next 50 ETF': 'UTI - Nifty Next 50 Exchange Traded Fund.',
-            'ICICI Pru Nifty Next 50 ETF': 'ICICI Prudential Nifty Next 50 ETF',
-            'Mirae Asset Nifty Next 50 ETF': 'Mirae Asset Nifty Next 50 ETF',
-            'Aditya Birla Nifty Next 50 ETF': 'Aditya Birla Sun Life Nifty Next 50 ETF',
-            'HDFC Nifty Next 50 ETF': 'HDFC Nifty Next 50 ETF',
-            'Motilal Oswal Nifty Next 50 ETF': 'Motilal Oswal Nifty Next 50 ETF'
-        };
-
-        async function processFiles() {
-            const csvInput = document.getElementById('csvInput');
-            const csvFile = csvInput.files[0];
-            
-            if (!csvFile) {
-                showStatus('Please select the ETF CSV file', 'error');
+            if (parsed.errors.length > 0) {
+                showStatus('Error parsing CSV: ' + parsed.errors[0].message, 'error');
                 return;
             }
-            
-            try {
-                // Read CSV file
-                const csvContent = await readTextFile(csvFile);
-                
-                // Parse CSV
-                const parsed = Papa.parse(csvContent, {
-                    header: true,
-                    dynamicTyping: false,
-                    skipEmptyLines: true
+
+            const data = parsed.data;
+
+            // Parse pasted tracking error data
+            const trackingDataText = document.getElementById('trackingDataInput').value;
+            let trackingData = {};
+
+            if (trackingDataText.trim()) {
+                trackingData = parseTrackingData(trackingDataText);
+                console.log('Parsed tracking data entries:', Object.keys(trackingData).length);
+            }
+
+            // Add tracking error to data
+            addTrackingError(data, trackingData);
+
+            // Categorize ETFs and add scheme codes
+            const categorizedData = categorizeETFs(data);
+
+            // Count scheme codes and tracking errors added
+            let schemeCodesAdded = 0;
+            let trackingErrorsAdded = 0;
+            Object.values(categorizedData).forEach(category => {
+                category.forEach(etf => {
+                    if (etf['Scheme Code'] && schemeCodeMapping[etf.Name]) {
+                        schemeCodesAdded++;
+                    }
+                    if (etf['Track Error'] && etf['Track Error'] !== '') {
+                        trackingErrorsAdded++;
+                    }
+                });
+            });
+
+            // Download Excel
+            downloadExcel(data.length, categorizedData, schemeCodesAdded, trackingErrorsAdded);
+
+        } catch (error) {
+            showStatus('Error processing files: ' + error.message, 'error');
+            console.error(error);
+        }
+    }
+
+    function readTextFile(file) {
+        return new Promise((resolve, reject) => {
+            const reader = new FileReader();
+            reader.onload = e => resolve(e.target.result);
+            reader.onerror = reject;
+            reader.readAsText(file);
+        });
+    }
+
+    function parseTrackingData(text) {
+        const trackingData = {};
+
+        try {
+            // Split by lines
+            const lines = text.split('\n');
+
+            // Find the header lines
+            let schemeNameCol = -1;
+            let directCol = -1;
+            let regularCol = -1;
+            let dataStartRow = -1;
+
+            // Look for "Scheme Name" header
+            for (let i = 0; i < Math.min(5, lines.length); i++) {
+                const cells = lines[i].split('\t');
+                for (let j = 0; j < cells.length; j++) {
+                    if (cells[j].toLowerCase().includes('scheme name')) {
+                        schemeNameCol = j;
+                        break;
+                    }
+                }
+                if (schemeNameCol > -1) break;
+            }
+
+            // Look for "Direct" and "Regular" headers (usually 1-2 rows after "Scheme Name")
+            for (let i = 0; i < Math.min(5, lines.length); i++) {
+                const cells = lines[i].split('\t');
+                for (let j = 0; j < cells.length; j++) {
+                    const cellValue = cells[j].toLowerCase().trim();
+                    if (cellValue === 'direct') {
+                        directCol = j;
+                        dataStartRow = i + 1;
+                    }
+                    if (cellValue === 'regular') {
+                        regularCol = j;
+                        dataStartRow = i + 1;
+                    }
+                }
+                if (directCol > -1 && regularCol > -1) break;
+            }
+
+            console.log('Parsing tracking data - Scheme Name Col:', schemeNameCol, 'Direct Col:', directCol, 'Regular Col:', regularCol);
+
+            // Parse data rows
+            if (schemeNameCol > -1 && (directCol > -1 || regularCol > -1) && dataStartRow > -1) {
+                for (let i = dataStartRow; i < lines.length; i++) {
+                    const cells = lines[i].split('\t');
+                    const schemeName = cells[schemeNameCol];
+
+                    // First try Direct column, then Regular if Direct is empty
+                    let trackingValue = '';
+                    if (directCol > -1) {
+                        trackingValue = cells[directCol];
+                    }
+                    if ((!trackingValue || trackingValue.trim() === '') && regularCol > -1) {
+                        trackingValue = cells[regularCol];
+                        console.log(`Using Regular value for "${schemeName}": ${trackingValue}`);
+                    }
+
+                    if (schemeName && trackingValue && schemeName.trim() && trackingValue.trim()) {
+                        const cleanName = schemeName.trim();
+                        const cleanValue = trackingValue.trim();
+
+                        // Store with uppercase key for case-insensitive matching
+                        trackingData[cleanName.toUpperCase()] = cleanValue.includes('%') ? cleanValue : cleanValue + '%';
+
+                        // Log first few entries
+                        if (Object.keys(trackingData).length <= 5) {
+                            console.log(`Added tracking data: "${cleanName}" = "${cleanValue}"`);
+                        }
+                    }
+                }
+            }
+
+            console.log('Total tracking entries parsed:', Object.keys(trackingData).length);
+
+        } catch (error) {
+            console.error('Error parsing tracking data:', error);
+        }
+
+        return trackingData;
+    }
+
+    function addTrackingError(data, trackingData) {
+        console.log('Adding tracking errors. Total tracking data entries:', Object.keys(trackingData).length);
+
+        let matchedCount = 0;
+        let unmatchedMappedETFs = [];
+
+        data.forEach(etf => {
+            const etfName = etf.Name || '';
+            etf['Track Error'] = '';
+
+            // ONLY process ETFs that have a mapping defined
+            const mappedName = etfNameMapping[etfName];
+            if (mappedName) {
+                const mappedNameUpper = mappedName.toUpperCase();
+                if (trackingData[mappedNameUpper]) {
+                    etf['Track Error'] = trackingData[mappedNameUpper];
+                    matchedCount++;
+                    console.log(`✓ Matched via mapping: "${etfName}" -> "${mappedName}" = ${trackingData[mappedNameUpper]}`);
+                } else {
+                    // This ETF has a mapping but no tracking data was found
+                    unmatchedMappedETFs.push(etfName);
+                    console.log(`✗ Mapping exists but no tracking data found: "${etfName}" -> "${mappedName}"`);
+
+                    // Show similar names in tracking data for debugging
+                    const keywords = mappedNameUpper.split(/[\s-]+/).filter(w => w.length > 2);
+                    const similar = Object.keys(trackingData).filter(name =>
+                        keywords.some(keyword => name.includes(keyword))
+                    );
+                    if (similar.length > 0 && similar.length < 5) {
+                        console.log('  Similar names in tracking data:', similar.slice(0, 3));
+                    }
+                }
+            }
+            // Skip ETFs without mapping - they don't get tracking errors
+        });
+
+        console.log(`Total tracking errors added: ${matchedCount} out of ${Object.keys(etfNameMapping).length} mapped ETFs`);
+        if (unmatchedMappedETFs.length > 0) {
+            console.log('Mapped ETFs without tracking data found:', unmatchedMappedETFs);
+        }
+    }
+
+    function categorizeETFs(data) {
+        const categories = {
+            '250': [],
+            '150': [],
+            'Next 50': [],
+            'Other': []
+        };
+
+        data.forEach(etf => {
+            const name = etf.Name || '';
+            const nameLower = name.toLowerCase();
+            let categorized = false;
+
+            // Fill in scheme code if we have it
+            if (schemeCodeMapping[name]) {
+                etf['Scheme Code'] = schemeCodeMapping[name];
+            } else if (!etf['Scheme Code']) {
+                etf['Scheme Code'] = '';
+            }
+
+            // Check 250 (exclude MQ)
+            if (name.includes('250') && !name.includes('MQ')) {
+                categories['250'].push(etf);
+                categorized = true;
+            }
+            // Check 150 (exclude Quality and Momtm)
+            else if (name.includes('150') && !nameLower.includes('quality') && !nameLower.includes('momtm')) {
+                categories['150'].push(etf);
+                categorized = true;
+            }
+            // Check Next 50 (exclude Sensex)
+            else if (nameLower.includes('next 50') && !nameLower.includes('sensex')) {
+                categories['Next 50'].push(etf);
+                categorized = true;
+            }
+
+            if (!categorized) {
+                categories['Other'].push(etf);
+            }
+        });
+
+        return categories;
+    }
+
+    function downloadExcel(totalCount, categorizedData, schemeCodesAdded, trackingErrorsAdded) {
+        // Create workbook
+        const wb = XLSX.utils.book_new();
+
+        // Convert data to worksheet format
+        const wsData = [];
+        const merges = [];
+
+        // Define desired columns (now includes Track Error)
+        const desiredColumns = ['Name', 'Scheme Code', 'Asset (Cr.)', 'Volume', 'Exp Ratio', 'Track Error'];
+
+        // Track category positions for merging
+        let currentRow = 1; // Excel rows are 1-indexed, and we start after header
+        const categoryOrder = ['250', '150', 'Next 50', 'Other'];
+
+        // Add header row with only desired columns
+        const headers = ['Category', ...desiredColumns];
+        wsData.push(headers);
+
+        categoryOrder.forEach(category => {
+            const categoryData = categorizedData[category];
+            if (categoryData && categoryData.length > 0) {
+                const startRow = currentRow;
+
+                // Sort ETFs within category
+                const sorted = categoryData.sort((a, b) => {
+                    const assetA = parseFloat((a['Asset (Cr.)'] || '0').replace(/,/g, ''));
+                    const assetB = parseFloat((b['Asset (Cr.)'] || '0').replace(/,/g, ''));
+
+                    if (assetA !== assetB) {
+                        return assetB - assetA;
+                    }
+
+                    const volumeA = parseFloat((a['Volume'] || '0').replace(/,/g, ''));
+                    const volumeB = parseFloat((b['Volume'] || '0').replace(/,/g, ''));
+                    return volumeB - volumeA;
                 });
 
-                if (parsed.errors.length > 0) {
-                    showStatus('Error parsing CSV: ' + parsed.errors[0].message, 'error');
-                    return;
-                }
-
-                const data = parsed.data;
-                
-                // Parse pasted tracking error data
-                const trackingDataText = document.getElementById('trackingDataInput').value;
-                let trackingData = {};
-                
-                if (trackingDataText.trim()) {
-                    trackingData = parseTrackingData(trackingDataText);
-                    console.log('Parsed tracking data entries:', Object.keys(trackingData).length);
-                }
-                
-                // Add tracking error to data
-                addTrackingError(data, trackingData);
-                
-                // Categorize ETFs and add scheme codes
-                const categorizedData = categorizeETFs(data);
-                
-                // Count scheme codes and tracking errors added
-                let schemeCodesAdded = 0;
-                let trackingErrorsAdded = 0;
-                Object.values(categorizedData).forEach(category => {
-                    category.forEach(etf => {
-                        if (etf['Scheme Code'] && schemeCodeMapping[etf.Name]) {
-                            schemeCodesAdded++;
-                        }
-                        if (etf['Track Error'] && etf['Track Error'] !== '') {
-                            trackingErrorsAdded++;
-                        }
+                // Add rows with only desired columns
+                sorted.forEach((etf, index) => {
+                    const row = [index === 0 ? category : ''];
+                    desiredColumns.forEach(column => {
+                        row.push(etf[column] || '');
                     });
+                    wsData.push(row);
+                    currentRow++;
                 });
-                
-                // Download Excel
-                downloadExcel(data.length, categorizedData, schemeCodesAdded, trackingErrorsAdded);
-                
-            } catch (error) {
-                showStatus('Error processing files: ' + error.message, 'error');
-                console.error(error);
-            }
-        }
 
-        function readTextFile(file) {
-            return new Promise((resolve, reject) => {
-                const reader = new FileReader();
-                reader.onload = e => resolve(e.target.result);
-                reader.onerror = reject;
-                reader.readAsText(file);
-            });
-        }
-
-        function parseTrackingData(text) {
-            const trackingData = {};
-            
-            try {
-                // Split by lines
-                const lines = text.split('\n');
-                
-                // Find the header lines
-                let schemeNameCol = -1;
-                let directCol = -1;
-                let regularCol = -1;
-                let dataStartRow = -1;
-                
-                // Look for "Scheme Name" header
-                for (let i = 0; i < Math.min(5, lines.length); i++) {
-                    const cells = lines[i].split('\t');
-                    for (let j = 0; j < cells.length; j++) {
-                        if (cells[j].toLowerCase().includes('scheme name')) {
-                            schemeNameCol = j;
-                            break;
-                        }
-                    }
-                    if (schemeNameCol > -1) break;
-                }
-                
-                // Look for "Direct" and "Regular" headers (usually 1-2 rows after "Scheme Name")
-                for (let i = 0; i < Math.min(5, lines.length); i++) {
-                    const cells = lines[i].split('\t');
-                    for (let j = 0; j < cells.length; j++) {
-                        const cellValue = cells[j].toLowerCase().trim();
-                        if (cellValue === 'direct') {
-                            directCol = j;
-                            dataStartRow = i + 1;
-                        }
-                        if (cellValue === 'regular') {
-                            regularCol = j;
-                            dataStartRow = i + 1;
-                        }
-                    }
-                    if (directCol > -1 && regularCol > -1) break;
-                }
-                
-                console.log('Parsing tracking data - Scheme Name Col:', schemeNameCol, 'Direct Col:', directCol, 'Regular Col:', regularCol);
-                
-                // Parse data rows
-                if (schemeNameCol > -1 && (directCol > -1 || regularCol > -1) && dataStartRow > -1) {
-                    for (let i = dataStartRow; i < lines.length; i++) {
-                        const cells = lines[i].split('\t');
-                        const schemeName = cells[schemeNameCol];
-                        
-                        // First try Direct column, then Regular if Direct is empty
-                        let trackingValue = '';
-                        if (directCol > -1) {
-                            trackingValue = cells[directCol];
-                        }
-                        if ((!trackingValue || trackingValue.trim() === '') && regularCol > -1) {
-                            trackingValue = cells[regularCol];
-                            console.log(`Using Regular value for "${schemeName}": ${trackingValue}`);
-                        }
-                        
-                        if (schemeName && trackingValue && schemeName.trim() && trackingValue.trim()) {
-                            const cleanName = schemeName.trim();
-                            const cleanValue = trackingValue.trim();
-                            
-                            // Store with uppercase key for case-insensitive matching
-                            trackingData[cleanName.toUpperCase()] = cleanValue.includes('%') ? cleanValue : cleanValue + '%';
-                            
-                            // Log first few entries
-                            if (Object.keys(trackingData).length <= 5) {
-                                console.log(`Added tracking data: "${cleanName}" = "${cleanValue}"`);
-                            }
-                        }
-                    }
-                }
-                
-                console.log('Total tracking entries parsed:', Object.keys(trackingData).length);
-                
-            } catch (error) {
-                console.error('Error parsing tracking data:', error);
-            }
-            
-            return trackingData;
-        }
-
-        function addTrackingError(data, trackingData) {
-            console.log('Adding tracking errors. Total tracking data entries:', Object.keys(trackingData).length);
-            
-            let matchedCount = 0;
-            let unmatchedMappedETFs = [];
-            
-            data.forEach(etf => {
-                const etfName = etf.Name || '';
-                etf['Track Error'] = '';
-                
-                // ONLY process ETFs that have a mapping defined
-                const mappedName = etfNameMapping[etfName];
-                if (mappedName) {
-                    const mappedNameUpper = mappedName.toUpperCase();
-                    if (trackingData[mappedNameUpper]) {
-                        etf['Track Error'] = trackingData[mappedNameUpper];
-                        matchedCount++;
-                        console.log(`✓ Matched via mapping: "${etfName}" -> "${mappedName}" = ${trackingData[mappedNameUpper]}`);
-                    } else {
-                        // This ETF has a mapping but no tracking data was found
-                        unmatchedMappedETFs.push(etfName);
-                        console.log(`✗ Mapping exists but no tracking data found: "${etfName}" -> "${mappedName}"`);
-                        
-                        // Show similar names in tracking data for debugging
-                        const keywords = mappedNameUpper.split(/[\s-]+/).filter(w => w.length > 2);
-                        const similar = Object.keys(trackingData).filter(name => 
-                            keywords.some(keyword => name.includes(keyword))
-                        );
-                        if (similar.length > 0 && similar.length < 5) {
-                            console.log('  Similar names in tracking data:', similar.slice(0, 3));
-                        }
-                    }
-                }
-                // Skip ETFs without mapping - they don't get tracking errors
-            });
-            
-            console.log(`Total tracking errors added: ${matchedCount} out of ${Object.keys(etfNameMapping).length} mapped ETFs`);
-            if (unmatchedMappedETFs.length > 0) {
-                console.log('Mapped ETFs without tracking data found:', unmatchedMappedETFs);
-            }
-        }
-
-        function categorizeETFs(data) {
-            const categories = {
-                '250': [],
-                '150': [],
-                'Next 50': [],
-                'Other': []
-            };
-
-            data.forEach(etf => {
-                const name = etf.Name || '';
-                const nameLower = name.toLowerCase();
-                let categorized = false;
-
-                // Fill in scheme code if we have it
-                if (schemeCodeMapping[name]) {
-                    etf['Scheme Code'] = schemeCodeMapping[name];
-                } else if (!etf['Scheme Code']) {
-                    etf['Scheme Code'] = '';
-                }
-
-                // Check 250 (exclude MQ)
-                if (name.includes('250') && !name.includes('MQ')) {
-                    categories['250'].push(etf);
-                    categorized = true;
-                } 
-                // Check 150 (exclude Quality and Momtm)
-                else if (name.includes('150') && !nameLower.includes('quality') && !nameLower.includes('momtm')) {
-                    categories['150'].push(etf);
-                    categorized = true;
-                } 
-                // Check Next 50 (exclude Sensex)
-                else if (nameLower.includes('next 50') && !nameLower.includes('sensex')) {
-                    categories['Next 50'].push(etf);
-                    categorized = true;
-                }
-
-                if (!categorized) {
-                    categories['Other'].push(etf);
-                }
-            });
-
-            return categories;
-        }
-
-        function downloadExcel(totalCount, categorizedData, schemeCodesAdded, trackingErrorsAdded) {
-            // Create workbook
-            const wb = XLSX.utils.book_new();
-            
-            // Convert data to worksheet format
-            const wsData = [];
-            const merges = [];
-            
-            // Define desired columns (now includes Track Error)
-            const desiredColumns = ['Name', 'Scheme Code', 'Asset (Cr.)', 'Volume', 'Exp Ratio', 'Track Error'];
-            
-            // Track category positions for merging
-            let currentRow = 1; // Excel rows are 1-indexed, and we start after header
-            const categoryOrder = ['250', '150', 'Next 50', 'Other'];
-            
-            // Add header row with only desired columns
-            const headers = ['Category', ...desiredColumns];
-            wsData.push(headers);
-            
-            categoryOrder.forEach(category => {
-                const categoryData = categorizedData[category];
-                if (categoryData && categoryData.length > 0) {
-                    const startRow = currentRow;
-                    
-                    // Sort ETFs within category
-                    const sorted = categoryData.sort((a, b) => {
-                        const assetA = parseFloat((a['Asset (Cr.)'] || '0').replace(/,/g, ''));
-                        const assetB = parseFloat((b['Asset (Cr.)'] || '0').replace(/,/g, ''));
-                        
-                        if (assetA !== assetB) {
-                            return assetB - assetA;
-                        }
-                        
-                        const volumeA = parseFloat((a['Volume'] || '0').replace(/,/g, ''));
-                        const volumeB = parseFloat((b['Volume'] || '0').replace(/,/g, ''));
-                        return volumeB - volumeA;
+                // Add merge range if more than one row in category
+                if (categoryData.length > 1) {
+                    merges.push({
+                        s: { r: startRow, c: 0 }, // start row, column
+                        e: { r: currentRow - 1, c: 0 } // end row, column
                     });
-                    
-                    // Add rows with only desired columns
-                    sorted.forEach((etf, index) => {
-                        const row = [index === 0 ? category : ''];
-                        desiredColumns.forEach(column => {
-                            row.push(etf[column] || '');
-                        });
-                        wsData.push(row);
-                        currentRow++;
-                    });
-                    
-                    // Add merge range if more than one row in category
-                    if (categoryData.length > 1) {
-                        merges.push({
-                            s: { r: startRow, c: 0 }, // start row, column
-                            e: { r: currentRow - 1, c: 0 } // end row, column
-                        });
-                    }
-                }
-            });
-            
-            // Create worksheet
-            const ws = XLSX.utils.aoa_to_sheet(wsData);
-            
-            // Add hyperlinks for scheme codes
-            const schemeCodeCol = headers.indexOf('Scheme Code');
-            if (schemeCodeCol > -1) {
-                for (let row = 1; row < wsData.length; row++) { // Start from 1 to skip header
-                    const schemeCode = wsData[row][schemeCodeCol];
-                    if (schemeCode && schemeCode !== '') {
-                        const cellAddress = XLSX.utils.encode_cell({ r: row, c: schemeCodeCol });
-                        ws[cellAddress].l = {
-                            Target: `https://api.mfapi.in/mf/${schemeCode}`,
-                            Tooltip: `View MF API data for ${schemeCode}`
-                        };
-                        // Style hyperlinks as blue and underlined
-                        ws[cellAddress].s = {
-                            font: {
-                                color: { rgb: "0000FF" },
-                                underline: true
-                            }
-                        };
-                    }
                 }
             }
-            
-            // Apply merges
-            ws['!merges'] = merges;
-            
-            // Auto-fit columns
-            const colWidths = [
-                { wch: 12 }, // Category
-                { wch: 40 }, // Name
-                { wch: 15 }, // Scheme Code
-                { wch: 15 }, // Asset (Cr.)
-                { wch: 15 }, // Volume
-                { wch: 12 }, // Exp Ratio
-                { wch: 12 }  // Track Error
-            ];
-            ws['!cols'] = colWidths;
-            
-            // Add worksheet to workbook
-            XLSX.utils.book_append_sheet(wb, ws, "Categorized ETFs");
-            
-            // Generate Excel file
-            XLSX.writeFile(wb, "categorized_etfs.xlsx");
-            
-            // Show summary
-            const summary = categoryOrder.map(cat => 
-                `${cat}: ${categorizedData[cat].length}`
-            ).join(', ');
-            
-            let statusMessage = `Excel downloaded! Processed ${totalCount} ETFs, added ${schemeCodesAdded} scheme codes`;
-            if (trackingErrorsAdded > 0) {
-                statusMessage += `, added ${trackingErrorsAdded} tracking errors`;
+        });
+
+        // Create worksheet
+        const ws = XLSX.utils.aoa_to_sheet(wsData);
+
+        // Add hyperlinks for scheme codes
+        const schemeCodeCol = headers.indexOf('Scheme Code');
+        if (schemeCodeCol > -1) {
+            for (let row = 1; row < wsData.length; row++) { // Start from 1 to skip header
+                const schemeCode = wsData[row][schemeCodeCol];
+                if (schemeCode && schemeCode !== '') {
+                    const cellAddress = XLSX.utils.encode_cell({ r: row, c: schemeCodeCol });
+                    ws[cellAddress].l = {
+                        Target: `https://api.mfapi.in/mf/${schemeCode}`,
+                        Tooltip: `View MF API data for ${schemeCode}`
+                    };
+                    // Style hyperlinks as blue and underlined
+                    ws[cellAddress].s = {
+                        font: {
+                            color: { rgb: "0000FF" },
+                            underline: true
+                        }
+                    };
+                }
             }
-            statusMessage += `. Distribution: ${summary}`;
-            
-            showStatus(statusMessage, 'success');
         }
 
-        function showStatus(message, type) {
-            const statusDiv = document.getElementById('status');
-            statusDiv.className = 'status ' + type;
-            statusDiv.textContent = message;
+        // Apply merges
+        ws['!merges'] = merges;
+
+        // Auto-fit columns
+        const colWidths = [
+            { wch: 12 }, // Category
+            { wch: 40 }, // Name
+            { wch: 15 }, // Scheme Code
+            { wch: 15 }, // Asset (Cr.)
+            { wch: 15 }, // Volume
+            { wch: 12 }, // Exp Ratio
+            { wch: 12 }  // Track Error
+        ];
+        ws['!cols'] = colWidths;
+
+        // Add worksheet to workbook
+        XLSX.utils.book_append_sheet(wb, ws, "Categorized ETFs");
+
+        // Generate Excel file
+        XLSX.writeFile(wb, "categorized_etfs.xlsx");
+
+        // Show summary
+        const summary = categoryOrder.map(cat =>
+            `${cat}: ${categorizedData[cat].length}`
+        ).join(', ');
+
+        let statusMessage = `Excel downloaded! Processed ${totalCount} ETFs, added ${schemeCodesAdded} scheme codes`;
+        if (trackingErrorsAdded > 0) {
+            statusMessage += `, added ${trackingErrorsAdded} tracking errors`;
         }
-    </script>
+        statusMessage += `. Distribution: ${summary}`;
+
+        showStatus(statusMessage, 'success');
+    }
+
+    function showStatus(message, type) {
+        const statusDiv = document.getElementById('status');
+        statusDiv.className = 'status ' + type;
+        statusDiv.textContent = message;
+    }
+</script>
 </body>
 </html>
