@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ETF Categorizer</title>
+    <title>ETF Categorizer with Tracking Error</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.0/papaparse.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
     <style>
@@ -13,7 +13,7 @@
             background-color: #f5f5f5;
         }
         .container {
-            max-width: 800px;
+            max-width: 900px;
             margin: 0 auto;
             background-color: white;
             padding: 30px;
@@ -36,11 +36,23 @@
             border-radius: 5px;
             margin-bottom: 20px;
             border: 2px dashed #ccc;
-            text-align: center;
+        }
+        .file-input-group {
+            margin: 15px 0;
+            padding: 15px;
+            background-color: white;
+            border-radius: 5px;
+        }
+        .file-input-group label {
+            display: block;
+            font-weight: bold;
+            margin-bottom: 5px;
+            color: #555;
         }
         input[type="file"] {
-            margin: 10px 0;
+            margin: 5px 0;
             font-size: 16px;
+            width: 100%;
         }
         button {
             background-color: #2196F3;
@@ -51,6 +63,7 @@
             border-radius: 5px;
             cursor: pointer;
             margin: 10px 5px;
+            width: 100%;
         }
         button:hover {
             background-color: #1976D2;
@@ -58,12 +71,6 @@
         button:disabled {
             background-color: #ccc;
             cursor: not-allowed;
-        }
-        .download-button {
-            background-color: #4CAF50;
-        }
-        .download-button:hover {
-            background-color: #45a049;
         }
         .status {
             margin-top: 20px;
@@ -79,30 +86,38 @@
             background-color: #ffcdd2;
             color: #c62828;
         }
+        .warning {
+            background-color: #fff3cd;
+            color: #856404;
+        }
     </style>
 </head>
 <body>
     <div class="container">
-        <h1>ETF Categorizer</h1>
+        <h1>ETF Categorizer with Tracking Error</h1>
         
         <div class="info">
             <p><strong>Categories (in order):</strong> 250, 150, Next 50, Other</p>
-            <p><strong>Output Columns:</strong> Category, Name, Scheme Code, Asset (Cr.), Volume, Exp Ratio</p>
-            <p><strong>Features:</strong> Excel file with merged category cells and hyperlinked scheme codes</p>
+            <p><strong>Output Columns:</strong> Category, Name, Scheme Code, Asset (Cr.), Volume, Exp Ratio, <strong>Track Error</strong></p>
+            <p><strong>Features:</strong> Excel file with merged category cells, hyperlinked scheme codes, and tracking error data</p>
             <p><strong>Sorting:</strong> Within each category by Asset (Cr.) desc, then Volume desc</p>
-            <p><strong>Exclusions:</strong></p>
-            <ul>
-                <li>150: Excludes ETFs with "Quality" or "Momtm"</li>
-                <li>250: Excludes ETFs with "MQ"</li>
-                <li>Next 50: Excludes ETFs with "Sensex"</li>
-            </ul>
+            <p><strong>Tracking Error:</strong> Uses Direct tracking error values from the second file</p>
         </div>
 
         <div class="upload-section">
-            <h3>Upload your ETF CSV file</h3>
-            <input type="file" id="fileInput" accept=".csv">
-            <br>
-            <button id="processBtn" onclick="processFile()" disabled>Process & Download Excel</button>
+            <h3>Upload your files</h3>
+            
+            <div class="file-input-group">
+                <label for="csvInput">1. ETF Data CSV File (Required)</label>
+                <input type="file" id="csvInput" accept=".csv">
+            </div>
+            
+            <div class="file-input-group">
+                <label for="trackingInput">2. Tracking Error Excel File (Optional)</label>
+                <input type="file" id="trackingInput" accept=".xlsx,.xls">
+            </div>
+            
+            <button id="processBtn" onclick="processFiles()" disabled>Process & Download Excel</button>
         </div>
 
         <div id="status"></div>
@@ -110,9 +125,13 @@
 
     <script>
         // Enable/disable process button based on file selection
-        document.getElementById('fileInput').addEventListener('change', function(e) {
-            document.getElementById('processBtn').disabled = !e.target.files.length;
-        });
+        document.getElementById('csvInput').addEventListener('change', checkFiles);
+        document.getElementById('trackingInput').addEventListener('change', checkFiles);
+        
+        function checkFiles() {
+            const csvFile = document.getElementById('csvInput').files.length;
+            document.getElementById('processBtn').disabled = !csvFile;
+        }
 
         // Scheme code mapping
         const schemeCodeMapping = {
@@ -135,61 +154,195 @@
             'Motilal Oswal Nifty Next 50 ETF': '153535'
         };
 
-        function processFile() {
-            const fileInput = document.getElementById('fileInput');
-            const file = fileInput.files[0];
+        // ETF name mapping for tracking error matching
+        const etfNameMapping = {
+            'HDFC Nifty Small Cap 250 ETF': 'HDFC NIFTY Smallcap 250 ETF',
+            'Motilal Oswal Nifty Smallcap 250 ETF': 'MOTILAL OSWAL NIFTY SMALLCAP 250 ETF',
+            'Nippon Nifty MC 150 ETF (MID150BEES)': 'Nippon India ETF Nifty Midcap 150',
+            'Mirae Asset Nifty Midcap 150 ETF': 'Mirae Asset Nifty Midcap 150 ETF',
+            'ICICI Pru Nifty Midcap 150 ETF': 'ICICI Prudential Nifty Midcap 150 ETF',
+            'HDFC Nifty Midcap 150 ETF': 'HDFC NIFTY Midcap 150 ETF',
+            'Zerodha Nifty Midcap 150 ETF': 'Zerodha Nifty Midcap 150 ETF',
+            'UTI Nifty Midcap 150 ETF': 'UTI Nifty Midcap 150 Exchange Traded Fund',
+            'Nippon Nifty Next 50 Junior Bees - ETF': 'Nippon India ETF Nifty Next 50 Junior BeES',
+            'SBI Nifty Next 50 ETF': 'SBI Nifty Next 50 ETF',
+            'UTI Nifty Next 50 ETF': 'UTI - Nifty Next 50 Exchange Traded Fund.',
+            'ICICI Pru Nifty Next 50 ETF': 'ICICI Prudential Nifty Next 50 ETF',
+            'Mirae Asset Nifty Next 50 ETF': 'Mirae Asset Nifty Next 50 ETF',
+            'Aditya Birla Nifty Next 50 ETF': 'Aditya Birla Sun Life Nifty Next 50 ETF',
+            'HDFC Nifty Next 50 ETF': 'HDFC Nifty Next 50 ETF'
+        };
+
+        async function processFiles() {
+            const csvInput = document.getElementById('csvInput');
+            const trackingInput = document.getElementById('trackingInput');
+            const csvFile = csvInput.files[0];
+            const trackingFile = trackingInput.files[0];
             
-            if (!file) {
-                showStatus('Please select a file first', 'error');
+            if (!csvFile) {
+                showStatus('Please select the ETF CSV file', 'error');
                 return;
             }
             
-            const reader = new FileReader();
-            
-            reader.onload = function(e) {
-                try {
-                    const csvContent = e.target.result;
-                    
-                    // Parse CSV
-                    const parsed = Papa.parse(csvContent, {
-                        header: true,
-                        dynamicTyping: false,
-                        skipEmptyLines: true
-                    });
+            try {
+                // Read CSV file
+                const csvContent = await readTextFile(csvFile);
+                
+                // Parse CSV
+                const parsed = Papa.parse(csvContent, {
+                    header: true,
+                    dynamicTyping: false,
+                    skipEmptyLines: true
+                });
 
-                    if (parsed.errors.length > 0) {
-                        showStatus('Error parsing CSV: ' + parsed.errors[0].message, 'error');
-                        return;
+                if (parsed.errors.length > 0) {
+                    showStatus('Error parsing CSV: ' + parsed.errors[0].message, 'error');
+                    return;
+                }
+
+                const data = parsed.data;
+                
+                // Read tracking error data if provided
+                let trackingData = {};
+                if (trackingFile) {
+                    trackingData = await readTrackingFile(trackingFile);
+                    if (Object.keys(trackingData).length === 0) {
+                        showStatus('Warning: Could not read tracking error data, continuing without it', 'warning');
                     }
+                }
+                
+                // Add tracking error to data
+                addTrackingError(data, trackingData);
+                
+                // Categorize ETFs and add scheme codes
+                const categorizedData = categorizeETFs(data);
+                
+                // Count scheme codes and tracking errors added
+                let schemeCodesAdded = 0;
+                let trackingErrorsAdded = 0;
+                Object.values(categorizedData).forEach(category => {
+                    category.forEach(etf => {
+                        if (etf['Scheme Code'] && schemeCodeMapping[etf.Name]) {
+                            schemeCodesAdded++;
+                        }
+                        if (etf['Track Error'] && etf['Track Error'] !== '') {
+                            trackingErrorsAdded++;
+                        }
+                    });
+                });
+                
+                // Download Excel
+                downloadExcel(data.length, categorizedData, schemeCodesAdded, trackingErrorsAdded);
+                
+            } catch (error) {
+                showStatus('Error processing files: ' + error.message, 'error');
+            }
+        }
 
-                    const data = parsed.data;
-                    
-                    // Categorize ETFs and add scheme codes
-                    const categorizedData = categorizeETFs(data);
-                    
-                    // Count scheme codes added
-                    let schemeCodesAdded = 0;
-                    Object.values(categorizedData).forEach(category => {
-                        category.forEach(etf => {
-                            if (etf['Scheme Code'] && schemeCodeMapping[etf.Name]) {
-                                schemeCodesAdded++;
+        function readTextFile(file) {
+            return new Promise((resolve, reject) => {
+                const reader = new FileReader();
+                reader.onload = e => resolve(e.target.result);
+                reader.onerror = reject;
+                reader.readAsText(file);
+            });
+        }
+
+        function readBinaryFile(file) {
+            return new Promise((resolve, reject) => {
+                const reader = new FileReader();
+                reader.onload = e => resolve(e.target.result);
+                reader.onerror = reject;
+                reader.readAsBinaryString(file);
+            });
+        }
+
+        async function readTrackingFile(file) {
+            const trackingData = {};
+            
+            try {
+                const data = await readBinaryFile(file);
+                const workbook = XLSX.read(data, { type: 'binary' });
+                const firstSheet = workbook.Sheets[workbook.SheetNames[0]];
+                const jsonData = XLSX.utils.sheet_to_json(firstSheet, { header: 1 });
+                
+                // Find column indices
+                let schemeNameCol = -1;
+                let directCol = -1;
+                
+                // Find header row (looking for "Scheme Name" and "Direct")
+                for (let i = 0; i < Math.min(jsonData.length, 5); i++) {
+                    const row = jsonData[i] || [];
+                    for (let j = 0; j < row.length; j++) {
+                        const cellValue = String(row[j] || '').toLowerCase();
+                        if (cellValue.includes('scheme name')) {
+                            schemeNameCol = j;
+                        }
+                        if (cellValue === 'direct') {
+                            directCol = j;
+                        }
+                    }
+                    if (schemeNameCol > -1 && directCol > -1) {
+                        // Start processing from next row
+                        for (let k = i + 1; k < jsonData.length; k++) {
+                            const dataRow = jsonData[k] || [];
+                            const schemeName = dataRow[schemeNameCol];
+                            const directValue = dataRow[directCol];
+                            
+                            if (schemeName && directValue) {
+                                // Store with uppercase for case-insensitive matching
+                                trackingData[String(schemeName).toUpperCase()] = directValue;
+                            }
+                        }
+                        break;
+                    }
+                }
+                
+            } catch (error) {
+                console.error('Error reading tracking file:', error);
+            }
+            
+            return trackingData;
+        }
+
+        function addTrackingError(data, trackingData) {
+            data.forEach(etf => {
+                const etfName = etf.Name || '';
+                etf['Track Error'] = '';
+                
+                // First try direct mapping
+                const mappedName = etfNameMapping[etfName];
+                if (mappedName && trackingData[mappedName.toUpperCase()]) {
+                    etf['Track Error'] = trackingData[mappedName.toUpperCase()];
+                }
+                // Then try exact match (case-insensitive)
+                else if (trackingData[etfName.toUpperCase()]) {
+                    etf['Track Error'] = trackingData[etfName.toUpperCase()];
+                }
+                // Try fuzzy matching for other ETFs
+                else {
+                    // Try to find partial matches
+                    const etfNameUpper = etfName.toUpperCase();
+                    for (const [trackerName, trackerValue] of Object.entries(trackingData)) {
+                        // Check if names share significant keywords
+                        const etfKeywords = etfNameUpper.split(/[\s-]+/).filter(w => w.length > 2);
+                        const trackerKeywords = trackerName.split(/[\s-]+/).filter(w => w.length > 2);
+                        
+                        let matchCount = 0;
+                        etfKeywords.forEach(keyword => {
+                            if (trackerKeywords.some(tk => tk.includes(keyword) || keyword.includes(tk))) {
+                                matchCount++;
                             }
                         });
-                    });
-                    
-                    // Download Excel immediately
-                    downloadExcel(data.length, categorizedData, schemeCodesAdded);
-                    
-                } catch (error) {
-                    showStatus('Error processing file: ' + error.message, 'error');
+                        
+                        // If we have at least 3 matching keywords, consider it a match
+                        if (matchCount >= 3) {
+                            etf['Track Error'] = trackerValue;
+                            break;
+                        }
+                    }
                 }
-            };
-            
-            reader.onerror = function() {
-                showStatus('Error reading file', 'error');
-            };
-            
-            reader.readAsText(file);
+            });
         }
 
         function categorizeETFs(data) {
@@ -209,7 +362,6 @@
                 if (schemeCodeMapping[name]) {
                     etf['Scheme Code'] = schemeCodeMapping[name];
                 } else if (!etf['Scheme Code']) {
-                    // Ensure the field exists even if empty
                     etf['Scheme Code'] = '';
                 }
 
@@ -237,7 +389,7 @@
             return categories;
         }
 
-        function downloadExcel(totalCount, categorizedData, schemeCodesAdded) {
+        function downloadExcel(totalCount, categorizedData, schemeCodesAdded, trackingErrorsAdded) {
             // Create workbook
             const wb = XLSX.utils.book_new();
             
@@ -245,8 +397,8 @@
             const wsData = [];
             const merges = [];
             
-            // Define desired columns
-            const desiredColumns = ['Name', 'Scheme Code', 'Asset (Cr.)', 'Volume', 'Exp Ratio'];
+            // Define desired columns (now includes Track Error)
+            const desiredColumns = ['Name', 'Scheme Code', 'Asset (Cr.)', 'Volume', 'Exp Ratio', 'Track Error'];
             
             // Track category positions for merging
             let currentRow = 1; // Excel rows are 1-indexed, and we start after header
@@ -330,7 +482,8 @@
                 { wch: 15 }, // Scheme Code
                 { wch: 15 }, // Asset (Cr.)
                 { wch: 15 }, // Volume
-                { wch: 12 }  // Exp Ratio
+                { wch: 12 }, // Exp Ratio
+                { wch: 12 }  // Track Error
             ];
             ws['!cols'] = colWidths;
             
@@ -345,7 +498,13 @@
                 `${cat}: ${categorizedData[cat].length}`
             ).join(', ');
             
-            showStatus(`Excel downloaded! Processed ${totalCount} ETFs, added ${schemeCodesAdded} scheme codes. Distribution: ${summary}`, 'success');
+            let statusMessage = `Excel downloaded! Processed ${totalCount} ETFs, added ${schemeCodesAdded} scheme codes`;
+            if (trackingErrorsAdded > 0) {
+                statusMessage += `, added ${trackingErrorsAdded} tracking errors`;
+            }
+            statusMessage += `. Distribution: ${summary}`;
+            
+            showStatus(statusMessage, 'success');
         }
 
         function showStatus(message, type) {
