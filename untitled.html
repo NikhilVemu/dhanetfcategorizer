@@ -462,8 +462,8 @@ MOTILAL OSWAL NIFTY SMALLCAP 250 ETF	NIFTY Smallcap 250 Total Return Index	0.22%
             const nameLower = name.toLowerCase();
             let categorized = false;
 
-            // Check 250 (exclude MQ)
-            if (name.includes('250') && !name.includes('MQ')) {
+            // Check 250 (only Small Cap 250 and Smallcap 250, exclude MQ)
+            if ((nameLower.includes('small cap 250') || nameLower.includes('smallcap 250')) && !name.includes('MQ')) {
                 categories['250'].push(etf);
                 categorized = true;
             }
