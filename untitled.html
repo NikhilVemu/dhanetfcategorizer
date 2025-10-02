@@ -454,6 +454,7 @@ MOTILAL OSWAL NIFTY SMALLCAP 250 ETF	NIFTY Smallcap 250 Total Return Index	0.22%
             '250': [],
             '150': [],
             'Next 50': [],
+            'Gold': [],
             'Other': []
         };
 
@@ -477,7 +478,11 @@ MOTILAL OSWAL NIFTY SMALLCAP 250 ETF	NIFTY Smallcap 250 Total Return Index	0.22%
                 categories['Next 50'].push(etf);
                 categorized = true;
             }
-
+            // Check Gold
+            else if (nameLower.includes('gold')) {
+                categories['Gold'].push(etf);
+                categorized = true;
+            }
             if (!categorized) {
                 categories['Other'].push(etf);
             }
