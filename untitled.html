@@ -157,7 +157,7 @@
     <h1>ETF Categorizer with Tracking Error</h1>
 
     <div class="info">
-        <p><strong>Categories (in order):</strong> 250, 150, Next 50, Other</p>
+        <p><strong>Categories (in order):</strong> 250, 150, Gold, Next 50, Other</p>
         <p><strong>Output Columns:</strong> Category, Name, Asset (Cr.), Volume, Exp Ratio, <strong>Track Error</strong></p>
         <p><strong>Features:</strong> Excel file with merged category cells and tracking error data</p>
         <p><strong>Sorting:</strong> Within each category by Asset (Cr.) desc, then Volume desc</p>
@@ -454,6 +454,7 @@ MOTILAL OSWAL NIFTY SMALLCAP 250 ETF	NIFTY Smallcap 250 Total Return Index	0.22%
             '250': [],
             '150': [],
             'Next 50': [],
+            'Gold': [],
             'Other': []
         };
 
@@ -477,6 +478,11 @@ MOTILAL OSWAL NIFTY SMALLCAP 250 ETF	NIFTY Smallcap 250 Total Return Index	0.22%
                 categories['Next 50'].push(etf);
                 categorized = true;
             }
+            // Check Gold
+            else if (nameLower.includes('gold')) {
+                categories['Gold'].push(etf);
+                categorized = true;
+            }
             if (!categorized) {
                 categories['Other'].push(etf);
             }
@@ -498,7 +504,7 @@ MOTILAL OSWAL NIFTY SMALLCAP 250 ETF	NIFTY Smallcap 250 Total Return Index	0.22%
 
         // Track category positions for merging
         let currentRow = 1; // Excel rows are 1-indexed, and we start after header
-        const categoryOrder = ['250', '150', 'Next 50', 'Other'];
+        const categoryOrder = ['250', '150', 'Next 50', 'Gold', 'Other'];
 
         // Add header row with only desired columns
         const headers = ['Category', ...desiredColumns];
